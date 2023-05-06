@@ -66,12 +66,12 @@ class ApiTest(unittest.TestCase):
 
     @my_vcr.use_cassette("sc-resolve-track-none.yaml")
     def test_resolves_unknown_track_to_none(self):
-        track = self.api.get_track("s38720262")
+        track = self.api.get_parsed_track("s38720262")
         assert track is None
 
     @my_vcr.use_cassette("sc-resolve-track.yaml")
     def test_resolves_track(self):
-        track = self.api.get_track("13158665")
+        track = self.api.get_parsed_track("13158665")
         assert isinstance(track, Track)
         assert track.uri == "soundcloud:song/Munching at Tiannas house.13158665"
 
@@ -200,6 +200,46 @@ class ApiTest(unittest.TestCase):
         track["streamable"] = False
         track = self.api.parse_track(track)
         assert track is None
+
+    @my_vcr.use_cassette("sc-resolve-app-client-id.yaml")
+    def test_resolves_app_client_id(self):
+        track = self.api._get("tracks/13158665")
+        track["sharing"] = "private"
+        track = self.api.parse_track(track, True)
+        assert track.uri == (
+            "https://cf-media.sndcdn.com/fxguEjG4ax6B.128.mp3?Policy="
+            "eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiKjovL2NmLW1lZGlhLnNu"
+            "ZGNkbi5jb20vZnhndUVqRzRheDZCLjEyOC5tcDMiLCJDb25kaXRpb24i"
+            "OnsiRGF0ZUxlc3NUaGFuIjp7IkFXUzpFcG9jaFRpbWUiOjE2MTc3Mzcw"
+            "ODV9fX1dfQ__&Signature=AT7ZL9gDe~34stPzDOORReIeNTbEpo~27"
+            "VP-set6t-T2mIW-W1fuWW6ny4-kd5XsW7mgndht1poURixYx1bUNTJFt"
+            "SX1LjjfvUaGfA5w3eDbfSHvlmh8fqIVN6RZAbCwQUbcndn8TI5Q1EPfP"
+            "8Aq-DLsIdUEE~3gxIVvX-YgzDZtxRMue0eefgp5oxk5z3KbHILPAyeS-"
+            "GQx4JIgMxSWaMKiG0Dx0raTNW8JFNugs9u5h62J21BxGSd6aifU9boff"
+            "khg1yWR9ccqHjMdDSRGpHLSBin6iNNHRzHj9vC4cq--DexYnyLQtdZp3"
+            "UlaXbFlP~-3XBMf6FLNiPbUA4HxgA__&Key-Pair-Id=APKAI6TU7MMX"
+            "M5DG6EPQ"
+        )
+
+    @my_vcr.use_cassette("sc-resolve-track-id-invalid-client-id.yaml")
+    def test_resolves_stream_track_invalid_id(self):
+        self.api.public_client_id = "blahblahrubbosh"
+        track = self.api.get_parsed_track("13158665", True)
+        assert isinstance(track, Track)
+        assert track.uri == (
+            "https://cf-media.sndcdn.com/fxguEjG4ax6B.128.mp3?Policy="
+            "eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiKjovL2NmLW1lZGlhLnNu"
+            "ZGNkbi5jb20vZnhndUVqRzRheDZCLjEyOC5tcDMiLCJDb25kaXRpb24i"
+            "OnsiRGF0ZUxlc3NUaGFuIjp7IkFXUzpFcG9jaFRpbWUiOjE2MTc1NDI2"
+            "MDh9fX1dfQ__&Signature=SwnMkrFlBL1Es-S7DMuHLiAzYxgKdl4bk"
+            "sjUny73MKN9d~54MhUzYOmgzETiERC73tyGo3iovjjk6P556J3FvAibn"
+            "adM7ip5pPNT5HpyS4~xE2zCAg9s1DnDSypcUzOT6pvKKTJ3F95w6~kr3"
+            "lRbRfDHsuq6O1HKB4k~NBVdTMRFhDRZJPdGg2BJFiI5M-IA-Ut5CQUJS"
+            "kYNXG1kQtvIJNenAUQAuQm0iKv-um7C5YbgkdOpZC~HU49YiLcCw8T~b"
+            "VYRgspxMctUQssmTg5yysD65vkQk8QVWpx9kE9kxdCL7oFqdAbv9tsgu"
+            "s7~nptZlygrOVi9TIyikLsi6BeMQw__&Key-Pair-Id=APKAI6TU7MMX"
+            "M5DG6EPQ"
+        )
 
     def test_parse_fail_reason(self):
         test_reason = "Unknown"
